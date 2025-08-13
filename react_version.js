@@ -1,0 +1,816 @@
+import React, { useState, useEffect, useCallback } from 'react';
+
+// --- Helper Components ---
+
+// Icon component for better semantics and reusability
+const Icon = ({ path, className = "w-5 h-5" }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={path}></path>
+    </svg>
+);
+
+// Loader component
+const Loader = ({ size = 'w-6 h-6' }) => (
+    <div className={`loader border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin ${size}`}></div>
+);
+
+
+// Modal component to handle modal logic centrally
+const Modal = ({ isOpen, onClose, children, maxWidth = "max-w-md" }) => {
+    const [show, setShow] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setShow(true);
+        } else {
+            const timer = setTimeout(() => setShow(false), 300);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen]);
+
+    if (!show) return null;
+
+    return (
+        <div 
+            className={`modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}
+            onClick={onClose}
+        >
+            <div 
+                className={`modal-content bg-white rounded-lg shadow-xl w-full ${maxWidth} p-6 transform transition-all duration-300 ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+                onClick={e => e.stopPropagation()}
+            >
+                {children}
+            </div>
+        </div>
+    );
+};
+
+
+// --- API Helper ---
+async function callGemini(prompt, generationConfig = null) {
+    const apiKey = ""; // Injected by environment
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+    
+    const payload = {
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+    };
+    if (generationConfig) {
+        payload.generationConfig = generationConfig;
+    }
+
+    const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.text();
+        console.error("API Error Response:", errorBody);
+        throw new Error(`API call failed with status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (result.candidates && result.candidates.length > 0 && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts.length > 0) {
+        return result.candidates[0].content.parts[0].text;
+    } else {
+        console.error("Unexpected API response structure:", result);
+        throw new Error("Could not extract text from API response.");
+    }
+}
+
+
+// --- Main Application Components ---
+
+const Sidebar = ({ activeView, setActiveView, onOpenAddFunds }) => {
+    const navItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
+        { id: 'parcels', label: 'My Parcels', icon: "M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4", badge: 12 },
+        { id: 'addresses', label: 'Addresses', icon: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z" },
+        { id: 'billing', label: 'Billing', icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
+        { id: 'account', label: 'Account', icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
+        { id: 'support', label: 'Support', icon: "M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.546-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
+    ];
+
+    return (
+        <aside className="w-64 bg-white border-r border-slate-200 flex-col hidden lg:flex">
+            <div className="p-6 text-2xl font-bold text-blue-600">ActiveCargo</div>
+            <nav className="flex-1 px-4 space-y-2">
+                {navItems.map(item => (
+                    <a
+                        key={item.id}
+                        href="#"
+                        onClick={(e) => { e.preventDefault(); setActiveView(item.id); }}
+                        className={`sidebar-link flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                            activeView === item.id
+                                ? 'bg-blue-600 text-white'
+                                : 'text-slate-600 hover:bg-slate-100'
+                        }`}
+                    >
+                        <Icon path={item.icon} className="w-5 h-5 mr-3" />
+                        {item.label}
+                        {item.badge && <span className="ml-auto bg-blue-100 text-blue-600 text-xs font-semibold px-2 py-0.5 rounded-full">{item.badge}</span>}
+                    </a>
+                ))}
+            </nav>
+            <div className="p-4 mt-auto">
+                <div className="p-4 bg-slate-100 rounded-lg text-center">
+                    <h4 className="font-semibold text-slate-800">Balance</h4>
+                    <p className="text-2xl font-bold text-blue-600 mt-1">$256.32</p>
+                    <button 
+                        onClick={onOpenAddFunds}
+                        className="w-full mt-3 bg-blue-600 text-white text-sm font-medium py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Add Funds
+                    </button>
+                </div>
+            </div>
+        </aside>
+    );
+};
+
+const DashboardView = ({ onOpenParcelModal, onOpenOrderModal, onOpenSmartStatusModal }) => {
+    const [activeTab, setActiveTab] = useState('all');
+    const tabs = ['all', 'warehouse', 'sent', 'delivered'];
+
+    return (
+         <main className="main-view p-4 sm:p-6 lg:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Welcome back, Yusuf!</h1>
+                    <p className="mt-1 text-slate-500">Here's a list of your parcels for tracking.</p>
+                </div>
+                <div className="mt-4 sm:mt-0 flex items-center space-x-2">
+                     <button onClick={onOpenOrderModal} className="bg-white border border-slate-300 text-slate-600 text-sm font-medium py-2 px-4 rounded-lg hover:bg-slate-50 transition-colors flex items-center">
+                        <Icon path="M12 6v6m0 0v6m0-6h6m-6 0H6" className="w-4 h-4 mr-2" />
+                        Create Order
+                    </button>
+                    <button onClick={onOpenParcelModal} className="bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+                        <Icon path="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" className="w-4 h-4 mr-2" />
+                        Create Parcel
+                    </button>
+                </div>
+            </div>
+
+            <div className="mt-8">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div className="relative flex-1">
+                        <Icon path="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" className="w-5 h-5 text-slate-400 absolute top-1/2 -translate-y-1/2 left-3" />
+                        <input type="text" placeholder="Search by tracking number, name, or destination..." className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
+                    </div>
+                    <div className="flex border border-slate-200 bg-white p-1 rounded-lg">
+                        {tabs.map(tab => (
+                            <button 
+                                key={tab} 
+                                onClick={() => setActiveTab(tab)}
+                                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 capitalize ${activeTab === tab ? 'bg-blue-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}
+                            >
+                                {tab === 'warehouse' ? 'In Warehouse' : tab}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-6 bg-white border border-slate-200 rounded-lg shadow-sm overflow-x-auto">
+                <table className="w-full text-sm text-left text-slate-600">
+                    <thead className="text-xs text-slate-700 uppercase bg-slate-100">
+                        <tr>
+                            <th scope="col" className="px-6 py-3">Tracking ID</th>
+                            <th scope="col" className="px-6 py-3">Parcel's name</th>
+                            <th scope="col" className="px-6 py-3">From</th>
+                            <th scope="col" className="px-6 py-3">To</th>
+                            <th scope="col" className="px-6 py-3">Date</th>
+                            <th scope="col" className="px-6 py-3">Status</th>
+                            <th scope="col" className="px-6 py-3"><span className="sr-only">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {[
+                            {id: 'CF-84610357', parcelname: 'Electronics', from: 'Seoul, KR', to: 'Tashkent, Uzb', date: 'Aug 12, 2025', status: 'Delivered', statusColor: 'green'},
+                            {id: 'CF-19374628', parcelname: 'Clothes', from: 'Beijing, China', to: 'Tashkent, Uzb', date: 'Aug 10, 2025', status: 'Sent', statusColor: 'blue'},
+                            {id: 'CF-55820194', parcelname: 'Books', from: 'Istanbul, Turkey', to: 'Tashkent, Uzb', date: 'Aug 08, 2025', status: 'In Warehouse', statusColor: 'orange'}
+                        ].map(parcel => (
+                            <tr key={parcel.id} className="bg-white border-b border-slate-200 hover:bg-slate-50">
+                                <td className="px-6 py-4 font-mono text-slate-900">{parcel.id}</td>
+                                <td className="px-6 py-4">{parcel.parcelname}</td>
+                                <td className="px-6 py-4">{parcel.from}</td>
+                                <td className="px-6 py-4">{parcel.to}</td>
+                                <td className="px-6 py-4">{parcel.date}</td>
+                                <td className="px-6 py-4">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${parcel.statusColor}-100 text-${parcel.statusColor}-800`}>{parcel.status}</span>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    <button onClick={() => onOpenSmartStatusModal(parcel)} className="text-slate-500 hover:text-blue-600" aria-label={`Get Smart Status for ${parcel.id}`}>
+                                        <Icon path="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" className="w-5 h-5"/>
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    );
+};
+
+const ParcelsView = ({ onOpenOrderModal }) => {
+    const [activeTab, setActiveTab] = useState('parcels');
+
+    return (
+        <main className="p-4 sm:p-6 lg:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">My Parcels</h1>
+                    <p className="mt-1 text-sm text-slate-500">Home / <span className="text-blue-600">Parcels</span></p>
+                </div>
+                <div className="mt-4 sm:mt-0">
+                     <button onClick={onOpenOrderModal} className="bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+                        <Icon path="M12 6v6m0 0v6m0-6h6m-6 0H6" className="w-4 h-4 mr-2" />
+                        New Order
+                    </button>
+                </div>
+            </div>
+
+            <div className="mt-8 border-b border-slate-200">
+                <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+                    <a href="#" onClick={(e) => {e.preventDefault(); setActiveTab('parcels')}} className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${activeTab === 'parcels' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'}`}>Parcels</a>
+                    <a href="#" onClick={(e) => {e.preventDefault(); setActiveTab('orderByCargo')}} className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${activeTab === 'orderByCargo' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'}`}>Order by Active Cargo</a>
+                    <a href="#" onClick={(e) => {e.preventDefault(); setActiveTab('declaration')}} className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${activeTab === 'declaration' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'}`}>Fill out the declaration</a>
+                </nav>
+            </div>
+
+            <div className="mt-6 flex items-center gap-2 flex-wrap">
+                <button className="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-full hover:bg-slate-50">Process <span className="ml-1.5 bg-slate-200 text-slate-600 text-xs font-semibold px-2 py-0.5 rounded-full">0</span></button>
+                <button className="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-full hover:bg-slate-50">Bought <span className="ml-1.5 bg-slate-200 text-slate-600 text-xs font-semibold px-2 py-0.5 rounded-full">0</span></button>
+                <button className="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-full hover:bg-slate-50">Verified <span className="ml-1.5 bg-slate-200 text-slate-600 text-xs font-semibold px-2 py-0.5 rounded-full">0</span></button>
+                <button className="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-full hover:bg-slate-50">Accepted <span className="ml-1.5 bg-slate-200 text-slate-600 text-xs font-semibold px-2 py-0.5 rounded-full">0</span></button>
+            </div>
+
+            <div className="mt-16 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+                    <Icon path="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" className="h-6 w-6 text-slate-400" />
+                </div>
+                <h3 className="mt-2 text-base font-semibold text-slate-900">Not found order</h3>
+                <p className="mt-1 text-sm text-slate-500">You have no orders with this status.</p>
+            </div>
+        </main>
+    );
+};
+
+const AddressesView = () => (
+    <main className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">My Addresses</h1>
+            <button className="mt-4 sm:mt-0 bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+                <Icon path="M12 6v6m0 0v6m0-6h6m-6 0H6" className="w-4 h-4 mr-2" />
+                Add New Address
+            </button>
+        </div>
+        <div className="mt-8 grid gap-6 md:grid-cols-2">
+            <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h3 className="font-bold text-slate-800">Primary Address</h3>
+                        <p className="text-sm text-slate-500">Alex Johnson</p>
+                    </div>
+                    <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">Default</span>
+                </div>
+                <div className="mt-4 text-sm text-slate-600 space-y-1">
+                    <p>123 Maple Street</p>
+                    <p>Springfield, IL, 62704</p>
+                    <p>United States</p>
+                    <p>+1 (555) 123-4567</p>
+                </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                 <div className="flex justify-between items-start">
+                    <div>
+                        <h3 className="font-bold text-slate-800">Office Address</h3>
+                        <p className="text-sm text-slate-500">Alex Johnson</p>
+                    </div>
+                </div>
+                <div className="mt-4 text-sm text-slate-600 space-y-1">
+                    <p>456 Oak Avenue, Suite 200</p>
+                    <p>Metropolis, NY, 10001</p>
+                    <p>United States</p>
+                    <p>+1 (555) 987-6543</p>
+                </div>
+            </div>
+        </div>
+    </main>
+);
+
+const BillingView = () => (
+    <main className="p-4 sm:p-6 lg:p-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Billing</h1>
+        <div className="mt-8 grid gap-8 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+                <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-semibold">Payment Methods</h3>
+                        <button className="text-sm font-medium text-blue-600 hover:text-blue-800">Add Card</button>
+                    </div>
+                    <div className="mt-4 space-y-4">
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex items-center gap-4">
+                                <img src="https://placehold.co/40x24/2563eb/ffffff?text=VISA" alt="Visa" className="h-6"/>
+                                <div>
+                                    <p className="font-medium">Visa ending in 1234</p>
+                                    <p className="text-sm text-slate-500">Expires 06/2028</p>
+                                </div>
+                            </div>
+                            <button className="text-sm text-red-500 hover:text-red-700">Remove</button>
+                        </div>
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex items-center gap-4">
+                                <img src="https://placehold.co/40x24/1f2937/ffffff?text=MC" alt="Mastercard" className="h-6"/>
+                                <div>
+                                    <p className="font-medium">Mastercard ending in 5678</p>
+                                    <p className="text-sm text-slate-500">Expires 08/2026</p>
+                                </div>
+                            </div>
+                            <button className="text-sm text-red-500 hover:text-red-700">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="lg:col-span-1">
+                <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                    <h3 className="text-lg font-semibold">Transaction History</h3>
+                    <ul className="mt-4 space-y-4">
+                        <li className="flex items-center justify-between">
+                            <div>
+                                <p className="font-medium">Parcel Fee - CF-84610357</p>
+                                <p className="text-sm text-slate-500">Aug 12, 2025</p>
+                            </div>
+                            <p className="font-medium text-green-600">-$25.00</p>
+                        </li>
+                        <li className="flex items-center justify-between">
+                            <div>
+                                <p className="font-medium">Funds Added</p>
+                                <p className="text-sm text-slate-500">Aug 10, 2025</p>
+                            </div>
+                            <p className="font-medium text-slate-800">+$100.00</p>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+);
+
+const AccountView = () => (
+    <main className="p-4 sm:p-6 lg:p-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Account Settings</h1>
+        <div className="mt-8 max-w-2xl">
+            <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                <h3 className="text-lg font-semibold">Personal Information</h3>
+                <form className="mt-4 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">First Name</label>
+                            <input type="text" defaultValue="Alex" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">Last Name</label>
+                            <input type="text" defaultValue="Johnson" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700">Email Address</label>
+                        <input type="email" defaultValue="alex.johnson@example.com" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div className="pt-2">
+                        <button type="submit" className="bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+            <div className="mt-8 bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                <h3 className="text-lg font-semibold">Change Password</h3>
+                <form className="mt-4 space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700">Current Password</label>
+                        <input type="password" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-slate-700">New Password</label>
+                        <input type="password" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-slate-700">Confirm New Password</label>
+                        <input type="password" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div className="pt-2">
+                        <button type="submit" className="bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700">Update Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+);
+
+const SupportView = () => {
+    const FAQItem = ({ question, answer }) => {
+        const [isOpen, setIsOpen] = useState(false);
+        return (
+            <details className="group" open={isOpen} onToggle={(e) => setIsOpen(e.currentTarget.open)}>
+                <summary className="flex cursor-pointer list-none items-center justify-between font-medium text-slate-900">
+                    {question}
+                    <Icon path="M19 9l-7 7-7-7" className={`h-5 w-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                </summary>
+                <p className="mt-2 text-sm text-slate-600">{answer}</p>
+            </details>
+        )
+    }
+
+    return (
+        <main className="p-4 sm:p-6 lg:p-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Support</h1>
+             <div className="mt-8 grid gap-8 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                    <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                        <h3 className="text-lg font-semibold">Contact Us</h3>
+                        <p className="text-sm text-slate-500 mt-1">Our team will get back to you within 24 hours.</p>
+                        <form className="mt-4 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">Subject</label>
+                                <input type="text" placeholder="e.g., Issue with parcel CF-12345" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">Message</label>
+                                <textarea rows="5" placeholder="Please describe your issue in detail..." className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                            </div>
+                            <div className="pt-2">
+                                <button type="submit" className="bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700">Send Message</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div className="lg:col-span-1">
+                    <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                        <h3 className="text-lg font-semibold">Frequently Asked Questions</h3>
+                        <div className="mt-4 space-y-3">
+                            <FAQItem 
+                                question="How do I track my parcel?"
+                                answer="You can track your parcel from the main Dashboard or the 'My Parcels' section using the provided tracking ID."
+                            />
+                            <FAQItem 
+                                question="What are the shipping costs?"
+                                answer="Shipping costs are calculated based on weight, dimensions, and destination. You will see the final cost at checkout."
+                            />
+                        </div>
+                    </div>
+                </div>
+             </div>
+        </main>
+    )
+};
+
+
+// --- Modal Components ---
+
+const ParcelModal = ({ isOpen, onClose }) => {
+    const [items, setItems] = useState([{ id: 1, name: '', category: 'Electronics', quantity: 1, price: '' }]);
+
+    const handleItemChange = (id, field, value) => {
+        setItems(prevItems => prevItems.map(item => item.id === id ? { ...item, [field]: value } : item));
+    };
+
+    const addItem = () => {
+        setItems(prevItems => [...prevItems, { id: Date.now(), name: '', category: 'Electronics', quantity: 1, price: '' }]);
+    };
+
+    const removeItem = (id) => {
+        setItems(prevItems => prevItems.filter(item => item.id !== id));
+    };
+
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} maxWidth="max-w-xl">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+                <h3 className="text-lg font-semibold text-slate-900">Create New Parcel</h3>
+                <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close modal">
+                    <Icon path="M6 18L18 6M6 6l12 12" className="w-6 h-6" />
+                </button>
+            </div>
+            <form className="mt-4 space-y-4">
+                <div>
+                    <label htmlFor="trackingNumber" className="block text-sm font-medium text-slate-700">Tracking Number</label>
+                    <input type="text" id="trackingNumber" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Enter tracking number" />
+                </div>
+                <div>
+                    <label htmlFor="storeName" className="block text-sm font-medium text-slate-700">Shop / Store Name</label>
+                    <input type="text" id="storeName" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Amazon, eBay" />
+                </div>
+                
+                <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
+                    {items.map((item, index) => (
+                        <div key={item.id} className="p-4 border border-slate-200 rounded-lg space-y-4 relative">
+                            {items.length > 1 && (
+                                <button type="button" onClick={() => removeItem(item.id)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center hover:bg-red-600 z-10">&times;</button>
+                            )}
+                            <p className="font-medium text-sm text-slate-600">Item {index + 1}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor={`productName-${item.id}`} className="block text-sm font-medium text-slate-700">Product Name</label>
+                                    <input type="text" id={`productName-${item.id}`} value={item.name} onChange={e => handleItemChange(item.id, 'name', e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm" placeholder="e.g., T-shirt" />
+                                </div>
+                                <div>
+                                    <label htmlFor={`category-${item.id}`} className="block text-sm font-medium text-slate-700">Category</label>
+                                    <select id={`category-${item.id}`} value={item.category} onChange={e => handleItemChange(item.id, 'category', e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm">
+                                        <option>Electronics</option>
+                                        <option>Clothing</option>
+                                        <option>Books</option>
+                                        <option>Home Goods</option>
+                                        <option>Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label htmlFor={`quantity-${item.id}`} className="block text-sm font-medium text-slate-700">Quantity</label>
+                                    <input type="number" id={`quantity-${item.id}`} value={item.quantity} onChange={e => handleItemChange(item.id, 'quantity', e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm" />
+                                </div>
+                                <div>
+                                    <label htmlFor={`price-${item.id}`} className="block text-sm font-medium text-slate-700">Price (USD)</label>
+                                    <input type="number" id={`price-${item.id}`} value={item.price} onChange={e => handleItemChange(item.id, 'price', e.target.value)} placeholder="e.g., 25.99" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm" />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                
+                <button type="button" onClick={addItem} className="w-full mt-2 bg-slate-100 text-blue-600 text-sm font-medium py-2 rounded-lg hover:bg-slate-200 transition-colors flex items-center justify-center">
+                    <Icon path="M12 6v6m0 0v6m0-6h6m-6 0H6" className="w-4 h-4 mr-2" />
+                    Add another item
+                </button>
+
+                <div>
+                    <label htmlFor="parcelDescription" className="block text-sm font-medium text-slate-700">Description (Optional)</label>
+                    <textarea id="parcelDescription" rows="3" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Briefly describe all contents"></textarea>
+                </div>
+            </form>
+             <div className="mt-6 flex justify-end space-x-3">
+                <button type="button" className="bg-white border border-slate-300 text-slate-700 text-sm font-medium py-2 px-4 rounded-lg hover:bg-slate-50" onClick={onClose}>Cancel</button>
+                <button type="button" className="bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700">Add Parcel</button>
+            </div>
+        </Modal>
+    );
+};
+
+const OrderModal = ({ isOpen, onClose }) => {
+    const [items, setItems] = useState([{ id: 1, link: '', name: '', price: '', quantity: 1, color: '', size: '', category: 'Category 1*' }]);
+    const [total, setTotal] = useState(0);
+    const [loadingStates, setLoadingStates] = useState({});
+    const [currentStep, setCurrentStep] = useState(1);
+    
+    const steps = ["Purchase", "Declaration", "Payment"];
+
+    useEffect(() => {
+        const newTotal = items.reduce((sum, item) => {
+            const price = parseFloat(item.price) || 0;
+            const quantity = parseInt(item.quantity, 10) || 0;
+            return sum + (price * quantity);
+        }, 0);
+        setTotal(newTotal);
+    }, [items]);
+
+    const handleItemChange = (id, field, value) => {
+        setItems(prevItems => prevItems.map(item => item.id === id ? { ...item, [field]: value } : item));
+    };
+
+    const addItem = () => {
+        setItems(prevItems => [...prevItems, { id: Date.now(), link: '', name: '', price: '', quantity: 1, color: '', size: '', category: 'Category 1*' }]);
+    };
+
+    const removeItem = (id) => {
+        setItems(prevItems => prevItems.filter(item => item.id !== id));
+    };
+
+    const handleFetchDetails = async (id, link) => {
+        if (!link) {
+            alert('Please enter a product link first.');
+            return;
+        }
+        setLoadingStates(prev => ({ ...prev, [id]: true }));
+        
+        const prompt = `Based on this product URL, generate a JSON object with dummy data for the following fields: productName (string), price (number, between 10-200), color (string), size (string, e.g., "Medium", "L", "10"). URL: ${link}. Respond with only the raw JSON object.`;
+        const generationConfig = { responseMimeType: "application/json" };
+
+        try {
+            const responseText = await callGemini(prompt, generationConfig);
+            const productData = JSON.parse(responseText);
+            setItems(prevItems => prevItems.map(item => 
+                item.id === id ? { ...item, name: productData.productName || '', price: productData.price || '', color: productData.color || '', size: productData.size || '' } : item
+            ));
+        } catch (error) {
+            console.error('Error fetching product details:', error);
+            alert('Sorry, we could not fetch the product details. Please fill them in manually.');
+        } finally {
+            setLoadingStates(prev => ({ ...prev, [id]: false }));
+        }
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} maxWidth="max-w-2xl">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+                <h3 className="text-lg font-semibold text-slate-900">Add order for redemption</h3>
+                <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close modal">
+                    <Icon path="M6 18L18 6M6 6l12 12" className="w-6 h-6" />
+                </button>
+            </div>
+
+            <div className="my-6">
+                <div className="flex items-center">
+                    {steps.map((step, index) => (
+                        <React.Fragment key={step}>
+                            <div className={`flex items-center relative ${currentStep >= index + 1 ? 'text-blue-600' : 'text-slate-500'}`}>
+                                <div className={`rounded-full h-8 w-8 flex items-center justify-center font-bold ${currentStep >= index + 1 ? 'bg-blue-600 text-white' : 'bg-white border-2 border-slate-200'}`}>
+                                    {index + 1}
+                                </div>
+                                <div className="absolute top-0 -ml-10 text-center mt-10 w-32 text-xs font-medium uppercase">{step}</div>
+                            </div>
+                            {index < steps.length - 1 && <div className={`flex-auto border-t-2 ${currentStep > index + 1 ? 'border-blue-600' : 'border-slate-200'}`}></div>}
+                        </React.Fragment>
+                    ))}
+                </div>
+            </div>
+
+            <div className="mt-4 space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+                <p className="text-sm text-slate-600">Please let us know what products you would like us to purchase. Orders are processed within 1-2 days.</p>
+                {items.map((item) => (
+                    <div key={item.id} className="order-item p-4 border border-slate-200 rounded-lg space-y-4 relative">
+                        {items.length > 1 && (
+                            <button onClick={() => removeItem(item.id)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center hover:bg-red-600 z-10">&times;</button>
+                        )}
+                        <div className="flex items-end gap-2">
+                            <div className="flex-grow">
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Link to the product*</label>
+                                <input type="text" placeholder="https://" value={item.link} onChange={e => handleItemChange(item.id, 'link', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm" />
+                            </div>
+                            <button onClick={() => handleFetchDetails(item.id, item.link)} disabled={loadingStates[item.id]} className="bg-blue-100 text-blue-700 px-3 py-2 rounded-md text-sm font-semibold hover:bg-blue-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                {loadingStates[item.id] ? <Loader size="w-4 h-4" /> : '✨ Fetch Details'}
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" placeholder="Product Name*" value={item.name} onChange={e => handleItemChange(item.id, 'name', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm" />
+                            <input type="number" placeholder="Price per one*" value={item.price} onChange={e => handleItemChange(item.id, 'price', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm" />
+                            <input type="number" placeholder="Quantity*" value={item.quantity} onChange={e => handleItemChange(item.id, 'quantity', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm" />
+                            <input type="text" placeholder="Color" value={item.color} onChange={e => handleItemChange(item.id, 'color', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm" />
+                            <input type="text" placeholder="Size" value={item.size} onChange={e => handleItemChange(item.id, 'size', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm" />
+                            <select value={item.category} onChange={e => handleItemChange(item.id, 'category', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <option>Category 1*</option>
+                                <option>Category 2</option>
+                                <option>Category 3</option>
+                            </select>
+                        </div>
+                    </div>
+                ))}
+                <button onClick={addItem} className="w-full mt-2 bg-slate-100 text-blue-600 text-sm font-medium py-2 rounded-lg hover:bg-slate-200 transition-colors flex items-center justify-center">
+                    <Icon path="M12 6v6m0 0v6m0-6h6m-6 0H6" className="w-4 h-4 mr-2" />
+                    Add another item
+                </button>
+                <div className="text-right font-bold text-slate-800" id="orderTotal">Total: ${total.toFixed(2)}</div>
+            </div>
+            <div className="mt-6 flex justify-end space-x-3">
+                <button type="button" className="bg-white border border-slate-300 text-slate-700 text-sm font-medium py-2 px-4 rounded-lg hover:bg-slate-50" onClick={onClose}>Cancel</button>
+                <button type="button" className="bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700">Continue</button>
+            </div>
+        </Modal>
+    );
+};
+
+const AddFundsModal = ({ isOpen, onClose }) => {
+    return (
+        <Modal isOpen={isOpen} onClose={onClose}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                <h3 className="text-lg font-semibold text-slate-900">Add Funds to Balance</h3>
+                <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close modal">
+                    <Icon path="M6 18L18 6M6 6l12 12" className="w-6 h-6" />
+                </button>
+            </div>
+            <form className="mt-4 space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-slate-700">Amount</label>
+                    <input type="number" placeholder="Enter amount" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700">Payment Method</label>
+                    <select className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm">
+                        <option>Visa ending in 1234</option>
+                        <option>Mastercard ending in 5678</option>
+                    </select>
+                </div>
+            </form>
+             <div className="mt-6 flex justify-end">
+                <button type="button" className="bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700">Add to Balance</button>
+            </div>
+        </Modal>
+    );
+};
+
+const SmartStatusModal = ({ isOpen, onClose, parcelData }) => {
+    const [status, setStatus] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    const fetchSmartStatus = useCallback(async () => {
+        if (!parcelData) return;
+        setIsLoading(true);
+        setError(null);
+        setStatus('');
+        const prompt = `Generate a friendly, one-sentence status update for a parcel with the following details: Tracking ID: ${parcelData.id}, From: ${parcelData.from}, To: ${parcelData.to}, Current Status: "${parcelData.status}". Make it sound like a helpful assistant providing a more detailed, imaginative update.`;
+        try {
+            const smartUpdateText = await callGemini(prompt);
+            setStatus(smartUpdateText);
+        } catch (err) {
+            setError('Sorry, we could not fetch the smart status. Please try again later.');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [parcelData]);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchSmartStatus();
+        }
+    }, [isOpen, fetchSmartStatus]);
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose}>
+             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                <h3 className="text-lg font-semibold text-slate-900">✨ Smart Status Update</h3>
+                <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close modal">
+                    <Icon path="M6 18L18 6M6 6l12 12" className="w-6 h-6" />
+                </button>
+            </div>
+            <div className="mt-4 text-slate-600 min-h-[6rem] flex items-center justify-center">
+                {isLoading && <Loader />}
+                {error && <p className="text-red-500 text-center">{error}</p>}
+                {!isLoading && !error && <p>{status}</p>}
+            </div>
+            <div className="mt-6 flex justify-end">
+                <button type="button" className="bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700" onClick={onClose}>Close</button>
+            </div>
+        </Modal>
+    );
+};
+
+
+// --- Main App Component ---
+
+export default function App() {
+    const [activeView, setActiveView] = useState('dashboard');
+    const [isParcelModalOpen, setParcelModalOpen] = useState(false);
+    const [isOrderModalOpen, setOrderModalOpen] = useState(false);
+    const [isAddFundsModalOpen, setAddFundsModalOpen] = useState(false);
+    const [isSmartStatusModalOpen, setSmartStatusModalOpen] = useState(false);
+    const [activeParcelData, setActiveParcelData] = useState(null);
+
+    const handleOpenSmartStatusModal = (parcel) => {
+        setActiveParcelData(parcel);
+        setSmartStatusModalOpen(true);
+    };
+
+    const renderView = () => {
+        switch (activeView) {
+            case 'dashboard':
+                return <DashboardView 
+                            onOpenParcelModal={() => setParcelModalOpen(true)}
+                            onOpenOrderModal={() => setOrderModalOpen(true)}
+                            onOpenSmartStatusModal={handleOpenSmartStatusModal}
+                        />;
+            case 'parcels': 
+                return <ParcelsView onOpenOrderModal={() => setOrderModalOpen(true)} />;
+            case 'addresses': return <AddressesView />;
+            case 'billing': return <BillingView />;
+            case 'account': return <AccountView />;
+            case 'support': return <SupportView />;
+            default: return <DashboardView />;
+        }
+    };
+
+    return (
+        <div className="bg-slate-50 text-slate-800 font-sans">
+            <div className="flex min-h-screen">
+                <Sidebar 
+                    activeView={activeView} 
+                    setActiveView={setActiveView}
+                    onOpenAddFunds={() => setAddFundsModalOpen(true)}
+                />
+                <div className="flex-1 overflow-y-auto">
+                    {renderView()}
+                </div>
+            </div>
+
+            <ParcelModal isOpen={isParcelModalOpen} onClose={() => setParcelModalOpen(false)} />
+            <OrderModal isOpen={isOrderModalOpen} onClose={() => setOrderModalOpen(false)} />
+            <AddFundsModal isOpen={isAddFundsModalOpen} onClose={() => setAddFundsModalOpen(false)} />
+            <SmartStatusModal 
+                isOpen={isSmartStatusModalOpen} 
+                onClose={() => setSmartStatusModalOpen(false)}
+                parcelData={activeParcelData}
+            />
+        </div>
+    );
+}

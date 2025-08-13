@@ -1,0 +1,24 @@
+{
+  "name": "cargo_frontend",
+  "version": "1.0.0",
+  "description": "Frontside for Active Cargo users",
+  "main": "react_version.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shbaydadaev/cargo_frontend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shbaydadaev/cargo_frontend/issues"
+  },
+  "homepage": "https://github.com/shbaydadaev/cargo_frontend#readme",
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  }
+}
