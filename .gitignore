@@ -1,0 +1,29 @@
+# Dependencies
+my-cargo/node_modules/
+
+# Build output
+my-cargo/build/
+my-cargo/dist/
+
+# System files
+my-cargo/.DS_Store
+my-cargo/Thumbs.db
+
+# Logs
+my-cargo/npm-debug.log*
+my-cargo/yarn-debug.log*
+my-cargo/yarn-error.log*
+
+# Local env files
+my-cargo/.env
+my-cargo/.env.local
+my-cargo/.env.development.local
+my-cargo/.env.test.local
+my-cargo/.env.production.local
+
+# Editor settings
+my-cargo/.vscode/
+my-cargo/.idea/
+
+# Misc
+my-cargo/*.lock
