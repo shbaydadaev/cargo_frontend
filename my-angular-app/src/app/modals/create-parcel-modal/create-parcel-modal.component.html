@@ -1,0 +1,20 @@
+<div *ngIf="display" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" (click)="close()">
+    <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 transform scale-100" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+            <h3 class="text-lg font-semibold text-slate-900">Create New Parcel</h3>
+            <button type="button" (click)="close()" class="text-slate-400 hover:text-slate-600" aria-label="Close" title="Close">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form [formGroup]="parcelForm" (ngSubmit)="onSubmit()" class="mt-4 space-y-4">
+            <div>
+                <label for="trackingNumber" class="block text-sm font-medium text-slate-700">Tracking Number</label>
+                <input type="text" id="trackingNumber" formControlName="trackingNumber" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Enter tracking number">
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button type="button" (click)="close()" class="bg-white border border-slate-300 text-slate-700 text-sm font-medium py-2 px-4 rounded-lg hover:bg-slate-50">Cancel</button>
+                <button type="submit" [disabled]="parcelForm.invalid" class="bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50">Add Parcel</button>
+            </div>
+        </form>
+    </div>
+</div>

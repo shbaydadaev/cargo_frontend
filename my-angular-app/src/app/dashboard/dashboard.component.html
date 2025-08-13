@@ -1,0 +1,59 @@
+<main class="main-view p-4 sm:p-6 lg:p-8">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Welcome back, Yusuf!</h1>
+            <p class="mt-1 text-slate-500">Here's a list of your parcels for tracking.</p>
+        </div>
+        <div class="mt-4 sm:mt-0 flex items-center space-x-2">
+             <button (click)="openOrderModal()" class="bg-white border border-slate-300 text-slate-600 text-sm font-medium py-2 px-4 rounded-lg hover:bg-slate-50 transition-colors flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                Create Order
+            </button>
+            <button (click)="openParcelModal()" class="bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Create Parcel
+            </button>
+        </div>
+    </div>
+
+    <div class="mt-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="relative flex-1">
+                <svg class="w-5 h-5 text-slate-400 absolute top-1/2 -translate-y-1/2 left-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <input type="text" placeholder="Search by tracking number, name, or destination..." class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+            </div>
+            <div class="flex border border-slate-200 bg-white p-1 rounded-lg">
+                <button *ngFor="let tab of tabs" (click)="setActiveTab(tab)" [ngClass]="{'bg-blue-600 text-white shadow': activeTab === tab, 'bg-white text-slate-600 hover:bg-slate-100': activeTab !== tab}" class="px-4 py-2 text-sm font-medium rounded-md focus:outline-none transition-all duration-200 ease-in-out">{{tab}}</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-6 bg-white border border-slate-200 rounded-lg shadow-sm overflow-x-auto">
+        <table class="w-full text-sm text-left text-slate-600">
+            <thead class="text-xs text-slate-700 uppercase bg-slate-100">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Tracking ID</th>
+                    <th scope="col" class="px-6 py-3">From</th>
+                    <th scope="col" class="px-6 py-3">To</th>
+                    <th scope="col" class="px-6 py-3">Date</th>
+                    <th scope="col" class="px-6 py-3">Status</th>
+                    <th scope="col" class="px-6 py-3"><span class="sr-only">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let parcel of filteredParcels" class="bg-white border-b border-slate-200 hover:bg-slate-50">
+                    <td class="px-6 py-4 font-mono text-slate-900">{{parcel.trackingId}}</td>
+                    <td class="px-6 py-4">{{parcel.from}}</td>
+                    <td class="px-6 py-4">{{parcel.to}}</td>
+                    <td class="px-6 py-4">{{parcel.date}}</td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" [ngClass]="getStatusClass(parcel.status)">{{parcel.status}}</span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button (click)="openSmartStatus(parcel)" class="text-slate-500 hover:text-blue-600" title="Get Smart Status"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</main>

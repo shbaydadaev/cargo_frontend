@@ -1,0 +1,15 @@
+<div *ngIf="data" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" (click)="close()">
+    <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 transform scale-100" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+            <h3 class="text-lg font-semibold text-slate-900">✨ Smart Status Update</h3>
+            <button (click)="close()" class="text-slate-400 hover:text-slate-600" aria-label="Close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
+        <div class="mt-4 text-slate-600">
+            <div *ngIf="loading" class="flex items-center justify-center h-24"><div class="loader"></div></div>
+            <p *ngIf="!loading">{{ smartStatus }}</p>
+        </div>
+        <div class="mt-6 flex justify-end">
+            <button type="button" (click)="close()" class="bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700">Close</button>
+        </div>
+    </div>
+</div>
