@@ -2,31 +2,59 @@
     <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 transform scale-100 my-8" (click)="$event.stopPropagation()">
         <div class="flex items-center justify-between pb-4 border-b border-slate-200">
             <h3 class="text-lg font-semibold text-slate-900">Add order for redemption</h3>
-            <button (click)="close()" class="text-slate-400 hover:text-slate-600" aria-label="Close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <button type="button" (click)="close()" class="text-slate-400 hover:text-slate-600" aria-label="Close">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <!-- Stepper -->
+        <div class="my-6">
+            <div class="flex items-center">
+                <div class="flex items-center text-blue-600 relative"><div class="rounded-full h-8 w-8 flex items-center justify-center bg-blue-600 text-white font-bold">1</div><div class="absolute top-0 -ml-10 text-center mt-10 w-32 text-xs font-medium uppercase text-blue-600">Purchase</div></div>
+                <div class="flex-auto border-t-2 border-slate-200"></div>
+                <div class="flex items-center text-slate-500 relative"><div class="rounded-full h-8 w-8 flex items-center justify-center bg-white border-2 border-slate-200 font-bold">2</div><div class="absolute top-0 -ml-10 text-center mt-10 w-32 text-xs font-medium uppercase text-slate-500">Declaration</div></div>
+                <div class="flex-auto border-t-2 border-slate-200"></div>
+                <div class="flex items-center text-slate-500 relative"><div class="rounded-full h-8 w-8 flex items-center justify-center bg-white border-2 border-slate-200 font-bold">3</div><div class="absolute top-0 -ml-10 text-center mt-10 w-32 text-xs font-medium uppercase text-slate-500">Payment</div></div>
+            </div>
         </div>
         <form [formGroup]="orderForm" (ngSubmit)="onSubmit()" class="mt-4 space-y-4">
+            <p class="text-sm text-slate-600">Please let us know what products you would like us to purchase. Orders are processed within 1-2 days.</p>
             <div formArrayName="items" class="space-y-4">
                 <div *ngFor="let item of items.controls; let i=index" [formGroupName]="i" class="order-item p-4 border border-slate-200 rounded-lg space-y-4 relative">
                     <div class="flex items-end gap-2">
                         <div class="flex-grow">
                             <label class="block text-sm font-medium text-slate-700 mb-1">Link to the product*</label>
-                            <input type="text" formControlName="productLink" (blur)="fetchDetails(i)" placeholder="https://..." class="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <input type="url" formControlName="productLink" placeholder="https://..." class="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <button type="button" (click)="fetchDetails(i)" [disabled]="loadingDetails[i]" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-md text-sm font-semibold hover:bg-blue-200 flex items-center gap-2 disabled:opacity-50">
                            <span *ngIf="!loadingDetails[i]">✨ Fetch Details</span>
                            <span *ngIf="loadingDetails[i]" class="flex items-center gap-2"><div class="loader !w-4 !h-4"></div> Fetching...</span>
                         </button>
                     </div>
-                    <button type="button" (click)="removeItem(i)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center hover:bg-red-600">&times;</button>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" formControlName="productName" placeholder="Product Name*" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <input type="number" formControlName="price" placeholder="Price per one*" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <input type="number" formControlName="quantity" placeholder="Quantity*" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <input type="text" formControlName="color" placeholder="Color" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <input type="text" formControlName="size" placeholder="Size" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <select formControlName="category" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm text-slate-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="" disabled>Category*</option>
+                            <option value="electronics">Electronics</option>
+                            <option value="clothing">Clothing</option>
+                            <option value="books">Books</option>
+                        </select>
+                    </div>
+                    <button *ngIf="items.length > 1" (click)="removeItem(i)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center hover:bg-red-600">&times;</button>
                 </div>
             </div>
             <div class="mt-6 flex justify-between items-center">
-                <button type="button" (click)="addItem()" class="bg-slate-100 text-blue-600 text-sm font-medium py-2 px-4 rounded-lg hover:bg-slate-200 transition-colors flex items-center justify-center">
+                 <button type="button" (click)="addItem()" class="w-full mt-2 bg-slate-100 text-blue-600 text-sm font-medium py-2 rounded-lg hover:bg-slate-200 transition-colors flex items-center justify-center">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                     Add another item
                 </button>
-                <div class="text-right font-bold text-slate-800">Total: {{ total | currency }}</div>
             </div>
+            <div class="text-right font-bold text-slate-800">Total: {{ total | currency }}</div>
             <div class="mt-6 flex justify-end space-x-3">
                 <button type="button" (click)="close()" class="bg-white border border-slate-300 text-slate-700 text-sm font-medium py-2 px-4 rounded-lg hover:bg-slate-50">Cancel</button>
                 <button type="submit" [disabled]="orderForm.invalid" class="bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50">Continue</button>

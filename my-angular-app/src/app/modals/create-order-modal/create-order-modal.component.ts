@@ -26,22 +26,36 @@ export class CreateOrderModalComponent implements OnInit, OnDestroy {
     this.orderForm = this.fb.group({ items: this.fb.array([this.createItem()]) });
     this.onChanges();
   }
-  createItem(): FormGroup { return this.fb.group({ productLink: ['', Validators.required], price: [0], quantity: [1] }); }
+  createItem(): FormGroup { 
+    return this.fb.group({ 
+      productLink: ['', Validators.required],
+      productName: ['', Validators.required],
+      price: [0, [Validators.required, Validators.min(0.01)]],
+      quantity: [1, [Validators.required, Validators.min(1)]],
+      color: [''],
+      size: [''],
+      category: ['', Validators.required]
+    }); 
+  }
   get items(): FormArray { return this.orderForm.get('items') as FormArray; }
   addItem() { this.items.push(this.createItem()); }
   removeItem(i: number) { this.items.removeAt(i); }
-  onChanges(): void { this.formSubscription = this.orderForm.valueChanges.subscribe(v => { this.total = v.items.reduce((a: number, i: { price: number; quantity: number }) => a + (i.price * i.quantity), 0); }); }
-  fetchDetails(i: number) {
-  const item = this.items.at(i);
-  const link = item.get('productLink')?.value; // Use optional chaining
-  if (!link) return;
-  this.loadingDetails[i] = true;
-  const prompt = `Based on this product URL, generate a JSON object with a "price" (number). URL: ${link}. Respond with only the raw JSON object.`;
-  this.geminiService.generateContent(prompt, true).subscribe(
-    d => { item.patchValue(d); this.loadingDetails[i] = false; },
-    e => { console.error(e); this.loadingDetails[i] = false; }
-  );
+  onChanges(): void {
+  this.formSubscription = this.orderForm.valueChanges.subscribe(v => {
+    this.total = v.items.reduce(
+      (a: number, i: { price: number; quantity: number }) => a + (i.price * i.quantity),
+      0
+    );
+  });
 }
+  fetchDetails(i: number) {
+    const item = this.items.at(i);
+    const link = item.get('productLink')?.value;
+    if (!link) return;
+    this.loadingDetails[i] = true;
+    const prompt = `Based on this product URL, generate a JSON object with dummy data for: "productName" (string), "price" (number), "color" (string), and "size" (string). URL: ${link}. Respond with only the raw JSON object.`;
+    this.geminiService.generateContent(prompt, true).subscribe(d => { item.patchValue(d); this.loadingDetails[i] = false; }, e => { console.error(e); this.loadingDetails[i] = false; });
+  }
   close() { this.modalService.close('orderModal'); }
   onSubmit() { if (this.orderForm.valid) { console.log(this.orderForm.value); this.close(); } }
   ngOnDestroy() { this.modalSubscription.unsubscribe(); if (this.formSubscription) this.formSubscription.unsubscribe(); }

@@ -17,7 +17,11 @@ export class CreateParcelModalComponent implements OnInit, OnDestroy {
   constructor(private modalService: ModalService, private fb: FormBuilder) {}
   ngOnInit() {
     this.modalSubscription = this.modalService.displayParcelModal$.subscribe(s => this.display = s);
-    this.parcelForm = this.fb.group({ trackingNumber: ['', Validators.required] });
+    this.parcelForm = this.fb.group({ 
+        trackingNumber: ['', Validators.required],
+        storeName: ['', Validators.required],
+        description: ['']
+    });
   }
   ngOnDestroy() { this.modalSubscription.unsubscribe(); }
   close() { this.modalService.close('parcelModal'); }

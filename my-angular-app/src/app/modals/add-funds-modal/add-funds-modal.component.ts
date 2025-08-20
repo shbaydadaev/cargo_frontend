@@ -17,7 +17,10 @@ export class AddFundsModalComponent implements OnInit, OnDestroy {
   constructor(private modalService: ModalService, private fb: FormBuilder) {}
   ngOnInit() {
     this.modalSubscription = this.modalService.displayAddFundsModal$.subscribe(s => this.display = s);
-    this.fundsForm = this.fb.group({ amount: [null, [Validators.required, Validators.min(1)]] });
+    this.fundsForm = this.fb.group({ 
+        amount: [null, [Validators.required, Validators.min(1)]],
+        paymentMethod: ['visa', Validators.required]
+    });
   }
   ngOnDestroy() { this.modalSubscription.unsubscribe(); }
   close() { this.modalService.close('addFundsModal'); }
