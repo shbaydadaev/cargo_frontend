@@ -1,5 +1,6 @@
 <div *ngIf="display" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" (click)="close()">
-    <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 transform scale-100" (click)="$event.stopPropagation()">
+    <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 transform scale-100" (click)="$event.stopPropagation()">
+        
         <div class="flex items-center justify-between pb-3 border-b border-slate-200">
             <h3 class="text-lg font-semibold text-slate-900">Create New Parcel</h3>
             <button (click)="close()" class="text-slate-400 hover:text-slate-600" aria-label="Close">
@@ -8,20 +9,84 @@
                 </svg>
             </button>
         </div>
+
         <form [formGroup]="parcelForm" (ngSubmit)="onSubmit()" class="mt-4 space-y-4">
             <div>
-                <label for="trackingNumber" class="block text-sm font-medium text-slate-700">Tracking Number</label>
+                <label for="trackingNumber" class="block text-sm font-medium text-slate-700">Tracking Number*</label>
                 <input type="text" id="trackingNumber" formControlName="trackingNumber" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Enter tracking number">
             </div>
             <div>
                 <label for="storeName" class="block text-sm font-medium text-slate-700">Shop / Store Name</label>
-                <input type="text" id="storeName" formControlName="storeName" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Amazon, eBay">
+                <input type="text" id="storeName" formControlName="storeName" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Coupang, Nike">
             </div>
+
+            <div class="relative">
+                <div class="items-list-container max-h-[40vh] overflow-y-auto space-y-4 pr-4">
+                    <div formArrayName="items" class="space-y-4">
+                        <div *ngFor="let item of items.controls; let i = index" [formGroupName]="i" class="p-4 border border-slate-200 rounded-lg relative">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="text-md font-semibold text-slate-800">Item {{ i + 1 }}</h4>
+                                <button *ngIf="items.length > 1" type="button" (click)="removeItem(i)" class="text-red-500 hover:text-red-700" aria-label="Remove item">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+
+                            <div class="space-y-2">
+                                 <div>
+                                    <label [for]="'productName' + i" class="block text-sm font-medium text-slate-700">Product Name*</label>
+                                    <input type="text" [id]="'productName' + i" formControlName="productName" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., T-shirt">
+                                </div>
+                                <div>
+                                    <label [attr.for]="'category' + i" class="block text-sm font-medium text-slate-700">Category*</label>
+                                    <select [id]="'category' + i" formControlName="category" class="text-slate-400 mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" title="Select a category">
+                                        <option value="" disabled selected>Select category</option>
+                                        <option value="clothing">Clothing</option>
+                                        <option value="electronics">Electronics</option>
+                                        <option value="books">Books</option>
+                                        <option value="home_goods">Home Goods</option>
+                                        <option value="others">Others</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex-1">
+                                        <label [for]="'quantity' + i" class="block text-sm font-medium text-slate-700">Quantity*</label>
+                                        <input type="number" [id]="'quantity' + i" formControlName="quantity" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="1">
+                                    </div>
+                                    <div class="flex-1">
+                                        <label [for]="'price' + i" class="block text-sm font-medium text-slate-700">Price (USD)*</label>
+                                        <input type="number" step="0.01" [id]="'price' + i" formControlName="price" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., 15.99">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                 <div *ngIf="items.length > 2" class="absolute bottom-2 right-6 flex flex-col space-y-2 z-10">
+                    <button type="button" (click)="scrollToTop()" class="bg-white border border-slate-300 rounded-full p-2 shadow-md hover:bg-slate-100 transition-colors" aria-label="Scroll to top">
+                        <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                    </button>
+                    <button type="button" (click)="scrollToBottom()" class="bg-white border border-slate-300 rounded-full p-2 shadow-md hover:bg-slate-100 transition-colors" aria-label="Scroll to bottom">
+                        <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+
+            <button type="button" (click)="addItem()" class="w-full bg-slate-100 text-slate-700 text-sm font-medium py-2 px-4 rounded-lg hover:bg-slate-200">
+                + Add another item
+            </button>
+            
             <div>
-                <label for="parcelDescription" class="block text-sm font-medium text-slate-700">Description (Optional)</label>
-                <textarea id="parcelDescription" formControlName="description" rows="3" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Briefly describe the contents"></textarea>
+                <div class="flex items-center justify-between">
+                    <label for="parcelDescription" class="block text-sm font-medium text-slate-700">Description</label>
+                    <button type="button" class="text-xs text-blue-600 font-semibold hover:underline">✨ Generate Description</button>
+                </div>
+                <textarea id="parcelDescription" formControlName="description" rows="3" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Briefly describe all contents or generate one based on items above."></textarea>
             </div>
-            <div class="mt-6 flex justify-end space-x-3">
+
+            <div class="text-right font-bold text-slate-800 pt-2">Total: {{ total | currency }}</div>
+
+            <div class="pt-4 flex justify-end space-x-3 border-t border-slate-200">
                 <button type="button" (click)="close()" class="bg-white border border-slate-300 text-slate-700 text-sm font-medium py-2 px-4 rounded-lg hover:bg-slate-50">Cancel</button>
                 <button type="submit" [disabled]="parcelForm.invalid" class="bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50">Add Parcel</button>
             </div>
