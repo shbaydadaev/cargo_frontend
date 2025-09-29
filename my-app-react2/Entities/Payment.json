@@ -1,0 +1,56 @@
+{
+  "name": "Payment",
+  "type": "object",
+  "properties": {
+    "transaction_id": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "visa",
+        "mastercard",
+        "kakaopay",
+        "naver_pay",
+        "paypal",
+        "bank_transfer"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "failed",
+        "cancelled",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "reference_type": {
+      "type": "string",
+      "enum": [
+        "order",
+        "balance_topup",
+        "shipping"
+      ]
+    },
+    "reference_id": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "amount",
+    "payment_method"
+  ]
+}

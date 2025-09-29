@@ -14,7 +14,10 @@ export class DashboardComponent implements OnInit {
   parcels = [
     { trackingId: 'CF-84610357', from: 'Seoul, KR', to: 'Tashkent, Uzb', date: 'Aug 12, 2025', status: 'Delivered' },
     { trackingId: 'CF-19374628', from: 'Beijing, China', to: 'Tashkent, Uzb', date: 'Aug 10, 2025', status: 'Sent' },
+    { trackingId: 'CF-84610345', from: 'Seoul, KR', to: 'Tashkent, Uzb', date: 'Aug 14, 2025', status: 'Sent' },
+    { trackingId: 'CF-19374643', from: 'Beijing, China', to: 'Tashkent, Uzb', date: 'Aug 23, 2025', status: 'Sent' },
     { trackingId: 'CF-55820194', from: 'Istanbul, Turkey', to: 'Tashkent, Uzb', date: 'Aug 08, 2025', status: 'In Warehouse' },
+    { trackingId: 'CF-55820195', from: 'Istanbul, Turkey', to: 'Tashkent, Uzb', date: 'Aug 10, 2025', status: 'In Warehouse' },
   ];
   filteredParcels = this.parcels;
 

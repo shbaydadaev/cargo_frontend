@@ -1,0 +1,86 @@
+{
+  "name": "Order",
+  "type": "object",
+  "properties": {
+    "order_number": {
+      "type": "string",
+      "description": "Unique order identifier"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "purchasing",
+        "purchased",
+        "shipped",
+        "delivered",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "store_url": {
+      "type": "string",
+      "description": "URL of the online store"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Total order amount in USD"
+    },
+    "service_fee": {
+      "type": "number",
+      "description": "Service fee in USD"
+    },
+    "shipping_address": {
+      "type": "string"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid",
+        "failed",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "payment_method": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_link": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "color": {
+            "type": "string"
+          },
+          "size": {
+            "type": "string"
+          },
+          "options": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "special_instructions": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "order_number"
+  ]
+}

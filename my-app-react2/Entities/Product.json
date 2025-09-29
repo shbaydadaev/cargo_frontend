@@ -1,0 +1,84 @@
+{
+  "name": "Product",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    },
+    "original_price": {
+      "type": "number"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "electronics",
+        "clothing",
+        "beauty",
+        "home",
+        "sports",
+        "books",
+        "food",
+        "toys",
+        "automotive",
+        "other"
+      ]
+    },
+    "brand": {
+      "type": "string"
+    },
+    "image_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "store_name": {
+      "type": "string"
+    },
+    "store_url": {
+      "type": "string"
+    },
+    "product_url": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "reviews_count": {
+      "type": "number"
+    },
+    "availability": {
+      "type": "string",
+      "enum": [
+        "in_stock",
+        "out_of_stock",
+        "limited"
+      ],
+      "default": "in_stock"
+    },
+    "shipping_info": {
+      "type": "string"
+    },
+    "is_featured": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "name",
+    "price",
+    "category"
+  ]
+}

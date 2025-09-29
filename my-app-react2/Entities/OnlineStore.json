@@ -1,0 +1,44 @@
+{
+  "name": "OnlineStore",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the online store"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "URL for the store's logo"
+    },
+    "website_url": {
+      "type": "string",
+      "description": "The direct URL to the store's website"
+    },
+    "description": {
+      "type": "string",
+      "description": "A brief description of the store"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "general",
+        "fashion",
+        "beauty",
+        "electronics",
+        "books",
+        "food"
+      ],
+      "description": "The primary category of the store"
+    },
+    "is_featured": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the store should be featured prominently"
+    }
+  },
+  "required": [
+    "name",
+    "website_url",
+    "category"
+  ]
+}
