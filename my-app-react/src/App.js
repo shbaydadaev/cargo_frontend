@@ -6,6 +6,7 @@ import AddressesView from './components/AddressesView';
 import BillingView from './components/BillingView';
 import AccountView from './components/AccountView';
 import SupportView from './components/SupportView';
+import FlashcardsView from './components/FlashcardsView';
 import ParcelModal from './components/ParcelModal';
 import OrderModal from './components/OrderModal';
 import AddFundsModal from './components/AddFundsModal';
@@ -38,6 +39,7 @@ export default function App() {
             case 'billing': return <BillingView />;
             case 'account': return <AccountView />;
             case 'support': return <SupportView />;
+            case 'flashcards': return <FlashcardsView />;
             default: return <DashboardView 
                                 onOpenParcelModal={() => setParcelModalOpen(true)}
                                 onOpenOrderModal={() => setOrderModalOpen(true)}
